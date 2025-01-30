@@ -18,4 +18,18 @@ const router = createRouter({
   routes
 })
 
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('jwt')
+
+  if (to.name === 'login' && token) {
+    next({ name: 'home' })
+  } 
+  else if (to.name !== 'login' && !token) {
+    next({ name: 'login' })
+  } else {
+    next()
+  }
+})
+
+
 export default router

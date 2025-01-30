@@ -1,4 +1,9 @@
+<script setup>
+import Header from '@/components/Header.vue';
+</script>
+
 <template>
+  <Header></Header>
   <div class="container">
     <h1>Форма заявки на получение кредита</h1>
     <form @submit.prevent="submitForm" class="loan-form">
