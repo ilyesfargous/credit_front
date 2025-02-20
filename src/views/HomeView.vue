@@ -1,5 +1,5 @@
 <script setup>
-import Header from '@/components/Header.vue';
+import Header from '@/components/HeaderComp.vue';
 </script>
 
 <template>
@@ -15,17 +15,18 @@ import Header from '@/components/Header.vue';
         <label for="gender">Пол</label>
         <select v-model="person.gender" required>
           <option value="">Выберите пол</option>
-          <option value="Мужской">Мужской</option>
-          <option value="Женский">Женский</option>
+          <option value="male">Мужской</option>
+          <option value="female">Женский</option>
         </select>
       </div>
       <div class="form-group">
         <label for="education">Уровень образования</label>
         <select v-model="person.education" required>
           <option value="">Выберите образование</option>
-          <option value="Среднее">Среднее</option>
-          <option value="Высшее">Высшее</option>
-          <option value="Послевузовское">Послевузовское</option>
+          <option value="High School">Среднее профисиональное</option>
+          <option value="Bachelor">Бакалавриат</option>
+          <option value="Master">Магистратура</option>
+          <option value="Associate">Ассоциативная программа</option>
         </select>
       </div>
       <div class="form-group">
@@ -40,9 +41,9 @@ import Header from '@/components/Header.vue';
         <label for="homeOwnership">Статус владения жильем</label>
         <select v-model="person.homeOwnership" required>
           <option value="">Выберите статус</option>
-          <option value="Собственное">Собственное</option>
-          <option value="Аренда">Аренда</option>
-          <option value="Ипотека">Ипотека</option>
+          <option value="OWN">Собственное</option>
+          <option value="RENT">Аренда</option>
+          <option value="MORTGAGE">Ипотека</option>
         </select>
       </div>
       <div class="form-group">
@@ -53,9 +54,9 @@ import Header from '@/components/Header.vue';
         <label for="loanIntent">Цель кредита</label>
         <select v-model="loan.intent" required>
           <option value="">Выберите цель</option>
-          <option value="Покупка дома">Покупка дома</option>
-          <option value="Ремонт">Ремонт</option>
-          <option value="Образование">Образование</option>
+          <option value="PERSONAL">Персонально</option>
+          <option value="VENTURE">Бизнес</option>
+          <option value="EDUCATION">Образование</option>
         </select>
       </div>
       <div class="form-group">
@@ -74,15 +75,15 @@ import Header from '@/components/Header.vue';
         <label for="previousDefaults">Предыдущие просрочки по кредитам?</label>
         <select v-model="person.previousDefaults" required>
           <option value="">Выберите статус</option>
-          <option value="Да">Да</option>
-          <option value="Нет">Нет</option>
+          <option value="Yew">Да</option>
+          <option value="No">Нет</option>
         </select>
       </div>
       <button type="submit">Отправить заявку</button>
     </form>
-    <div v-if="submitted" class="result">
+    <div v-if="submitted">
       <h2>Результаты заявки</h2>
-      <pre>{{ results }}</pre>
+      <pre class="result" :class="[err ? 'error' : '', pos ? 'positive' : '']">{{ results }}</pre>
     </div>
   </div>
 </template>
@@ -109,12 +110,14 @@ export default {
       },
       submitted: false,
       results: '',
-      errors: []
+      errors: [],
+      err: false,
+      pos: false
     }
   },
   methods: {
     submitForm() {
-      this.errors = []; // Очищаем массив ошибок перед проверкой
+      this.errors = [];
       if (this.validateForm()) {
         this.processApplication();
         this.submitted = true;
@@ -128,8 +131,8 @@ export default {
         this.errors.push('Возраст должен быть не менее 18 лет.');
         isValid = false;
       }
-      if (this.person.income < 1000000) {
-        this.errors.push('Годовой доход должен быть не менее 1 000 000 рублей.');
+      if (this.person.income < 1000) {
+        this.errors.push('Годовой доход должен быть не менее 1000.');
         isValid = false;
       }
       if (this.person.experience < 1) {
@@ -152,11 +155,34 @@ export default {
       return isValid;
     },
     processApplication() {
-      // Логика обработки заявки
-      this.results = JSON.stringify({
-        person: this.person,
-        loan: this.loan
-      }, null, 2);
+      this.axios.post('http://127.0.0.1:8000/predict', {
+        "person_age": this.person.age,
+        "person_gender": this.person.gender,
+        "person_education": this.person.education,
+        "person_income": this.person.income,
+        "person_emp_exp": this.person.experience,
+        "person_home_ownership": this.person.homeOwnership,
+        "loan_amnt": this.loan.amount,
+        "loan_intent": this.loan.intent,
+        "loan_int_rate": this.loan.interestRate,
+        "loan_percent_income": this.loan.interestRate,
+        "cb_person_cred_hist_length": this.person.creditHistory,
+        "credit_score": this.person.creditScore,
+        "previous_loan_defaults_on_file": this.person.previousDefaults
+      }).then((response) => {
+        if (response.data.prediction === 1) {
+          this.results = 'Положительно'
+          this.pos = true
+          this.err = false
+        }
+        else {
+          this.results = 'Отрицательно'
+          this.err = true
+          this.pos = false
+        }
+      }).catch((err) => {
+        this.results = err
+      })
     }
   }
 }
